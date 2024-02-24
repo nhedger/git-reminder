@@ -1,0 +1,48 @@
+# Reusable workflow for packaging a stable release
+name: _Package stable release
+
+on:
+  workflow_call:
+    outputs:
+      version:
+        value: ${{ jobs.package.outputs.version }}
+        description: "Version of the packaged extension"
+
+jobs:
+  package:
+    name: Package stable release
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      - name: Retrieve pre-compiled extension assets
+        uses: actions/cache/restore@v4
+        with:
+          path: out/
+          key: compiled-extension-${{ github.sha }}
+
+      - name: Compute next version
+        id: next-version
+        run: echo "version=$(git-cliff --unreleased --bumped-version 2> /dev/null | sed 's/v//')" >> "$GITHUB_OUTPUT"
+      
+      - name: Patch package.json version
+        run: bun scripts/patch-version.ts ${{ steps.next-version.outputs.version }}
+
+      - name: Package stable extension
+        run: bun vsce package -o git-reminder-stable.vsix
+    
+      - name: Upload stable extension artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: git-reminder-stable.vsix
+          path: git-reminder-stable.vsix
+
+    outputs:
+      version: ${{ steps.next-version.outputs.version }}  

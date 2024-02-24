@@ -1,0 +1,64 @@
+name: Publish nightly release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build
+    uses: ./.github/workflows/_build.yaml
+  
+  package:
+    name: Package
+    needs: [build]
+    uses: ./.github/workflows/_package-nightly.yaml
+
+  publish-vs-marketplace:
+    name: Publish to Visual Studio Marketplace
+    environment:
+      name: Visual Studio Marketplace (pre-release)
+      url: https://marketplace.visualstudio.com/items?itemName=nhedger.git-reminder
+    if: github.ref == 'refs/heads/main'
+    needs: [package]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      - name: Download the artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: git-reminder-nightly.vsix
+
+      - name: Publish extension to Visual Studio Marketplace
+        run: bun vsce publish --pre-release --packagePath git-reminder-nightly.vsix
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+
+  publish-ovsx-registry:
+    name: Publish to Open VSX Registry
+    environment:
+      name: Open VSX Registry (pre-release)
+      url: https://open-vsx.org/extension/nhedger/git-reminder
+    if: github.ref == 'refs/heads/main'
+    needs: [package]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      - name: Download the artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: git-reminder-nightly.vsix
+
+      - name: Publish extension to Open VSX Registry
+        run: bun ovsx publish --pre-release --packagePath git-reminder-nightly.vsix
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}

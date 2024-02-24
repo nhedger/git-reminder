@@ -1,0 +1,9 @@
+pre-commit:
+  parallel: true
+  commands:
+    check:
+      glob: "*.{json,ts}"
+      run: bunx biome check --no-errors-on-unmatched --files-ignore-unknown=true {staged_files} && git update-index --again
+    typecheck:
+      glob: "*.ts"
+      run: bunx typescript --noEmit

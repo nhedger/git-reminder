@@ -1,0 +1,89 @@
+{
+	"name": "git-reminder",
+	"version": "0.0.0",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/nhedger/git-reminder.git"
+	},
+	"main": "./out/index.js",
+	"sponsor": {
+		"url": "https://github.com/sponsors/nhedger"
+	},
+	"extensionDependencies": ["vscode.git"],
+	"devDependencies": {
+		"@biomejs/biome": "1.5.3",
+		"@rollup/plugin-node-resolve": "^15.2.3",
+		"@types/bun": "latest",
+		"@types/vscode": "1.80.0",
+		"@vscode/vsce": "^2.23.0",
+		"git-cliff": "^2.0.4",
+		"lefthook": "^1.6.1",
+		"ovsx": "^0.8.3",
+		"rollup": "^4.12.0",
+		"rollup-plugin-esbuild": "^6.1.1",
+		"typescript": "^5.3.3"
+	},
+	"activationEvents": ["workspaceContains:.git"],
+	"bugs": {
+		"url": "https://github.com/nhedger/git-reminder/issues"
+	},
+	"categories": ["Other"],
+	"contributes": {
+		"configuration": {
+			"title": "Git Reminder",
+			"properties": {
+				"gitReminder.enabled": {
+					"type": "boolean",
+					"default": true,
+					"description": "Whether to enable the reminder."
+				},
+				"gitReminder.checkInterval": {
+					"type": "number",
+					"default": 120,
+					"minimum": 0,
+					"description": "The interval in seconds between checks."
+				},
+				"gitReminder.secondsUncommitted": {
+					"type": "number",
+					"default": 1800,
+					"minimum": 0,
+					"description": "The number of *seconds* uncommitted changes must be present to trigger a reminder."
+				},
+				"gitReminder.secondsUnpushed": {
+					"type": "number",
+					"default": 1800,
+					"minimum": 0,
+					"description": "The number of *seconds* unpushed changes must be present to trigger a reminder."
+				},
+				"gitReminder.reminderType": {
+					"type": "string",
+					"default": "notification",
+					"enum": ["notification", "modal"],
+					"description": "The type of reminder to use. A notification will appear in the bottom right of the window, while a modal will appear in the center of the window and require user interaction."
+				}
+			}
+		}
+	},
+	"description": "Reminds you to commit and push your changes.",
+	"displayName": "Git Reminder",
+	"engines": {
+		"vscode": "^1.80.0"
+	},
+	"homepage": "https://github.com/nhedger/git-reminder",
+	"icon": "resources/icons/git-reminder.png",
+	"keywords": ["commit", "reminder", "git", "source control", "vcs", "version control"],
+	"license": "MIT",
+	"packageManager": "bun@1.0.29",
+	"publisher": "nhedger",
+	"readme": "https://github.com/nhedger/git-reminder#readme",
+	"scripts": {
+		"build": "rollup --config rollup.config.ts --configPlugin esbuild",
+		"dev": "rollup --watch --config rollup.config.ts --configPlugin esbuild",
+		"package": "bun run build && vsce package --out git-reminder.vsix",
+		"typecheck": "tsc --noEmit",
+		"check": "biome check --apply ."
+	},
+	"vsce": {
+		"dependencies": false
+	}
+}

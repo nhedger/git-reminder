@@ -1,0 +1,125 @@
+name: Publish stable release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build
+    uses: ./.github/workflows/_build.yaml
+  
+  package:
+    name: Package
+    needs: [build]
+    uses: ./.github/workflows/_package-stable.yaml
+
+  publish-vs-marketplace:
+    name: Publish to Visual Studio Marketplace
+    environment:
+      name: Visual Studio Marketplace (stable)
+      url: https://marketplace.visualstudio.com/items?itemName=nhedger.git-reminder
+    if: github.ref == 'refs/heads/main'
+    needs: [package]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      - name: Download the artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: git-reminder-stable.vsix
+
+      - name: Publish extension to Visual Studio Marketplace
+        run: bun vsce publish --packagePath git-reminder-stable.vsix
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+
+  publish-ovsx-registry:
+    name: Publish to Open VSX Registry
+    environment:
+      name: Open VSX Registry (stable)
+      url: https://open-vsx.org/extension/nhedger/git-reminder
+    if: github.ref == 'refs/heads/main'
+    needs: [package]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      - name: Download the artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: git-reminder-stable.vsix
+
+      - name: Publish extension to Open VSX Registry
+        run: bun ovsx publish --packagePath git-reminder-stable.vsix
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+
+  publish-github-release:
+    name: Publish to GitHub Releases
+    if: github.ref == 'refs/heads/main'
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    needs: [package]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      - name: Download the artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: git-reminder-stable.vsix
+
+      - name: Rename extension file
+        run: mv git-reminder-stable.vsix git-reminder.vsix
+
+      - name: Update changelog
+        run: git-cliff --unreleased --bump --prepend CHANGELOG.md
+
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PRIVATE_KEY_PASSPHRASE }}
+          git_user_signingkey: true
+          git_commit_gpgsign: true
+      
+      - name: Commit and push the changelog
+        uses: EndBug/add-and-commit@v9
+        with:
+          add: ./CHANGELOG.md
+          message: "chore(release): prepare v${{ needs.package.outputs.version }} release"
+          author_name: "Nicolas Hedger"
+          author_email: "nicolas@hedger.ch"
+          commit: -S
+          push: true
+
+      - name: Generate release notes
+        run: git-cliff --config .github/release-notes.cliff.toml --unreleased > RELEASE_NOTES.md
+
+      - name: Publish extension to GitHub Releases
+        uses: softprops/action-gh-release@v1
+        with:
+          name: "${{ format('v{0}', needs.package.outputs.version) }}"
+          body_path: RELEASE_NOTES.md
+          files: git-reminder.vsix
+          tag_name: ${{ format('v{0}', needs.package.outputs.version) }}
+      
+      
