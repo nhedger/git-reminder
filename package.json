@@ -11,7 +11,7 @@
 	},
 	"extensionDependencies": ["vscode.git"],
 	"devDependencies": {
-		"@biomejs/biome": "1.5.3",
+		"@biomejs/biome": "1.6.1",
 		"@rollup/plugin-node-resolve": "^15.2.3",
 		"@types/bun": "latest",
 		"@types/vscode": "1.80.0",
